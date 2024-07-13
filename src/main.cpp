@@ -6,8 +6,15 @@
 #include <LittleFS.h>
 #include <WebSocketsServer.h>
 
-const char* ssid = "Main K";   
+
+const char* ssid = "Main C";   
 const char* password = "Ov3r100mill!";  
+
+IPAddress local_IP(10, 9, 5, 250);   // Set your static IP address
+IPAddress gateway(10, 9, 4, 1);      // Set your Gateway IP address
+IPAddress subnet(255, 255, 255, 0);     // Set your Subnet Mask
+IPAddress primaryDNS(8, 8, 8, 8);       // Set your primary DNS
+IPAddress secondaryDNS(8, 8, 4, 4);     // Set your secondary DNS
 
 bool wifiConnected = false;
 
@@ -125,6 +132,8 @@ void pollFast() {
 
 }
 
+uint16_t ledCounter = 0;
+
 void pollLEDs() {
 
   //Serial.printf("%d, %d, %d\n", button1, button2, button3);
@@ -144,11 +153,16 @@ void pollLEDs() {
       //Serial.printf("currentIntensity = %d, fadeDirection = %d\n", currentIntensity, fadeDirection);
     break;
     case MACHINE_STATE_RESULT:
+      ledCounter++;
       if (result == 1) {
         pixels1.fill(pixels1.Color(0, 0, 0), 0, NUMPIXELS);
         pixels2.fill(pixels2.Color(100, 100, 100), 0, NUMPIXELS);
       } else if (result == 2) {
         pixels1.fill(pixels1.Color(100, 100, 100), 0, NUMPIXELS);
+        pixels2.fill(pixels2.Color(0, 0, 0), 0, NUMPIXELS);
+      }
+      if (ledCounter < 100 && ledCounter % 10 == 0) {
+        pixels1.fill(pixels1.Color(0, 0, 0), 0, NUMPIXELS);
         pixels2.fill(pixels2.Color(0, 0, 0), 0, NUMPIXELS);
       }
     break;
@@ -201,7 +215,7 @@ void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t lengt
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  delay(1000);
+  delay(3000);
   Serial.println("Starting");
 
   pixels1.begin(); // This initializes the NeoPixel library.
@@ -216,9 +230,16 @@ void setup() {
 
   targetIntensity = 100;
 
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting to Wi-Fi");
+  // Set static IP address
+  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+    Serial.println("STA Failed to configure");
+  }
 
+  uint8_t button3 = digitalRead(BUTTON3_PIN);
+  if (button3 != 0) {
+    WiFi.begin(ssid, password);
+    Serial.print("Connecting to Wi-Fi");
+  }
   wifiConnected = WiFi.status() == WL_CONNECTED;
 
   server.on("/", handleRoot);
@@ -244,9 +265,9 @@ void loop() {
   ledTimer.update();
 
   if (timer1sDidFire) {
-    Serial.printf("Game Timer: %d\n", machineState);
+    Serial.printf("machineState: %d\n", machineState);
     timer1sDidFire = 0;
-    checkWiFi();
+    //checkWiFi();
   }  
 
   if (ledTimerDidFire) {
