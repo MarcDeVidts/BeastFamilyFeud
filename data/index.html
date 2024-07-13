@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Beast Podium</title>
+  <style>
+    body {
+      background-color: black;
+      color: white;
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+    button {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      border: none;
+      font-size: 20px;
+      margin: 20px;
+      cursor: pointer;
+      color: white;
+    }
+    .red-button {
+      background-color: red;
+    }
+    .blue-button {
+      background-color: blue;
+    }
+  </style>
+</head>
+<body>
+  <h1>Beast Podium</h1>
+  <button class="red-button" onclick="sendCommand('command1')">OFF</button>
+  <button class="blue-button" onclick="sendCommand('command2')">RESET</button>
+  <!-- <button class="blue-button" onclick="sendCommand('command3')">RESULTS</button> -->
+  
+  <div id="status">
+    <h2>Machine State: <span id="machineState">Unknown</span></h2>
+    <h2>Winner: <span id="winner">None</span></h2>
+  </div>
+
+  <script>
+    var webSocket;
+    var reconnectInterval;
+
+    function initWebSocket() {
+      console.log("Connecting WebSocket");
+      webSocket = new WebSocket("ws://" + window.location.hostname + ":81/");
+
+      webSocket.onopen = function(event) {
+        console.log("WebSocket connection opened");
+        clearInterval(reconnectInterval); // Clear any existing reconnect attempts
+      };
+
+      webSocket.onclose = function(event) {
+        console.log("WebSocket connection closed");
+        attemptReconnect();
+      };
+
+      webSocket.onmessage = function(event) {
+        console.log("WebSocket message received:", event.data);
+        handleWebSocketMessage(event.data);
+      };
+    }
+
+    function attemptReconnect() {
+      reconnectInterval = setInterval(function() {
+        console.log("Attempting to reconnect WebSocket...");
+        initWebSocket();
+      }, 5000);
+    }
+
+    function sendCommand(command) {
+      if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+        webSocket.send(command);
+      } else {
+        console.log("WebSocket is not connected");
+      }
+    }
+
+    function handleWebSocketMessage(data) {
+      var message = JSON.parse(data);
+      document.getElementById("machineState").innerText = message.machineState;
+      document.getElementById("winner").innerText = message.winner;
+    }
+
+    window.onload = function() {
+      initWebSocket();
+    };
+  </script>
+</body>
+</html>
