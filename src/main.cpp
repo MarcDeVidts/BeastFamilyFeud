@@ -6,7 +6,7 @@
 #include <LittleFS.h>
 #include <WebSocketsServer.h>
 
-const char* ssid = "Main C";   
+const char* ssid = "Main K";   
 const char* password = "Ov3r100mill!";  
 
 bool wifiConnected = false;
@@ -87,6 +87,8 @@ void sendStateToClient() {
   webSocket.broadcastTXT(jsonMessage);
 }
 
+uint8_t previousMachineState = 0;
+
 void pollFast() {
 
   uint8_t button1 = digitalRead(BUTTON1_PIN);
@@ -94,29 +96,33 @@ void pollFast() {
   uint8_t button3 = digitalRead(BUTTON3_PIN);
 
   switch (machineState) {
-    case MACHINE_STATE_IDLE:
-
-    break;
     case MACHINE_STATE_VOTE:
       if (button1 == 0) {
         machineState = MACHINE_STATE_RESULT;
         result = 1;
-        sendStateToClient();
       }
       if (button2 == 0) {
         machineState = MACHINE_STATE_RESULT;
         result = 2;
-        sendStateToClient();
       }
     break;
     case MACHINE_STATE_RESULT:
+      if (button3 == 0) {
+        machineState = MACHINE_STATE_VOTE;
+        result = 0;
+      }
       if (Serial.available()) {
         Serial.read();
         machineState = MACHINE_STATE_VOTE;
-        sendStateToClient();
       }
     break;
   }
+
+  if (machineState != previousMachineState) {
+    sendStateToClient();
+  }
+  previousMachineState = machineState;
+
 }
 
 void pollLEDs() {
@@ -159,15 +165,20 @@ void handleWebSocketMessage(uint8_t num, uint8_t *payload, size_t length) {
 
   Serial.printf("WebSocket message received: %s\n", message.c_str());
 
-  if (message == "command1") {
-    machineState = 0;
-    Serial.println("Command 1 received");
-  } else if (message == "command2") {
-    machineState = 1;
-    Serial.println("Command 2 received");
-  } else if (message == "command3") {
-    Serial.println("Command 3 received");
+  if (message == "setWinner1") {
+    machineState = MACHINE_STATE_RESULT;
+    result = 1;
+    Serial.println("setWinner1 command received");
+  } else if (message == "setWinner2") {
+    machineState = MACHINE_STATE_RESULT;
+    result = 2;
+    Serial.println("setWinner2 command received");
+  } else if (message == "reset") {
+    machineState = MACHINE_STATE_VOTE;
+    result = 0;
+    Serial.println("Reset command received");
   }
+  sendStateToClient();
 }
 
 void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
@@ -233,7 +244,7 @@ void loop() {
   ledTimer.update();
 
   if (timer1sDidFire) {
-    //Serial.printf("Game Timer: %d\n", machineState);
+    Serial.printf("Game Timer: %d\n", machineState);
     timer1sDidFire = 0;
     checkWiFi();
   }  
