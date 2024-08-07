@@ -11,12 +11,12 @@
         font-family: Arial, sans-serif;
       }
       .logo {
-        width: 400px;
-        max-width: 40vw;
+        width: 200px;
+        max-width: 30vw;
       }
       button.player {
-        width: 150px;
-        height: 150px;
+        width: 100px;
+        height: 100px;
         max-width: 30vw;
         max-height: 30vw;
         border-radius: 50%;
@@ -29,10 +29,10 @@
       button.player.red-button {
         background-color: red;
       }
-      button.player.blue-button {
-        background-color: blue;
+      button.player.gold-button {
+        background-color: rgb(235, 185, 70);
       }
-      button.player.winner {
+      button.player.highlight {
         border: 5px solid white !important;
       }
       .reset-button {
@@ -46,34 +46,75 @@
         text-wrap: nowrap;
         padding: 1em;
       }
+      h2 {
+        padding: 0;
+        margin: 0;
+      }
     </style>
   </head>
   <body>
-    <img class="logo" src="beast-logo.png" />
-    <h1>Twins Podium</h1>
-    <div>
-      <button
-        id="button1"
-        class="player red-button"
-        onclick="sendCommand('setWinner1')"
-      >
-        PLAYER 1
-      </button>
-      <button
-        id="button2"
-        class="player blue-button"
-        onclick="sendCommand('setWinner2')"
-      >
-        PLAYER 2
-      </button>
-    </div>
-    <button class="reset-button" onclick="sendCommand('reset')">
-      Reset Game
-    </button>
+    <div style="max-width: 40em">
+      <!-- <img class="logo" src="beast-logo.png" /> -->
+      <h1>Twins Podium</h1>
+      <div>
+        <button
+          id="btnRandom"
+          class="player gold-button"
+          onclick="sendCommand('setGameDirectionRandom')"
+        >
+          RANDOM
+        </button>
+        <button
+          id="btnBounce"
+          class="player gold-button"
+          onclick="sendCommand('setGameDirectionBounce')"
+        >
+          BOUNCE
+        </button>
+      </div>
+      <!-- <div>
+        <h2>Minimum Round Length:</h2>
+        <br />
+        <input
+          style="width: 100%"
+          type="range"
+          min="5"
+          max="30"
+          step="5"
+          value="5"
+          onchange="sendCommand('setMinTime,'+this.value.toString().padStart(3, '0'));"
+        />
+        <div style="display: flex; justify-content: space-between">
+          <div>5s</div>
+          <div id="minTimeLabel">5s</div>
+          <div>30s</div>
+        </div>
 
-    <div id="status">
-      <h2>Machine State: <span id="machineState">Unknown</span></h2>
-      <h2>Winner: <span id="winner">None</span></h2>
+      <div>
+        <h2>Maximum Round Length:</h2>
+        <br />
+        <input
+          style="width: 100%"
+          type="range"
+          min="20"
+          max="120"
+          step="5"
+          value="60"
+          onchange="sendCommand('setMaxTime,'+this.value.toString().padStart(3, '0'));"
+        />
+        <div style="display: flex; justify-content: space-between">
+          <div>20s</div>
+          <div id="maxTimeLabel">60</div>
+          <div>120s</div>
+        </div>
+      </div> -->
+      <button class="reset-button" onclick="sendCommand('reset')">
+        Reset Game
+      </button>
+
+      <div id="status">
+        <h2>Machine State: <span id="machineState">Unknown</span></h2>
+      </div>
     </div>
 
     <script>
@@ -117,24 +158,17 @@
 
       function handleWebSocketMessage(data) {
         var message = JSON.parse(data);
-        var machineStateText = "";
-        switch (message.machineState) {
-          case 0:
-            machineStateText = "IDLE";
-            break;
-          case 1:
-            machineStateText = "VOTING";
-            break;
+        document.getElementById("machineState").innerText =
+          message.machineState;
+        document.getElementById("btnRandom").classList.remove("highlight");
+        document.getElementById("btnBounce").classList.remove("highlight");
+        if (message.gameDirection == 1) {
+          document.getElementById("btnRandom").classList.add("highlight");
+        } else if (message.gameDirection == 0) {
+          document.getElementById("btnBounce").classList.add("highlight");
         }
-        document.getElementById("machineState").innerText = machineStateText;
-        document.getElementById("winner").innerText = message.winner;
-        document.getElementById("button1").classList.remove("winner");
-        document.getElementById("button2").classList.remove("winner");
-        if (message.winner == 1) {
-          document.getElementById("button1").classList.add("winner");
-        } else if (message.winner == 2) {
-          document.getElementById("button2").classList.add("winner");
-        }
+        // document.getElementById("minTimeLabel").innerHTML = message.minRoundLengthSeconds;
+        // document.getElementById("maxTimeLabel").innerHTML = message.maxRoundLengthSeconds;
       }
 
       window.onload = function () {
